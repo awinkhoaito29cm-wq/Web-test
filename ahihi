@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mình Thích Cậu 🫶✨</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      height: 100vh;
+      background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .heart-text {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 
+        0 0 20px #ff69b4,
+        0 0 40px #ff1493,
+        0 0 60px #c71585;
+      opacity: 0;
+      transform: scale(0.1) translate(-40vw, 40vh);
+      animation: appear 4s forwards 1.5s ease-out;
+      letter-spacing: -1px;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .heart-text span {
+      display: inline-block;
+      animation: heartbeat 1.6s infinite;
+    }
+
+    .author {
+      position: absolute;
+      bottom: 20px;
+      right: 30px;
+      font-size: 1rem;
+      opacity: 0.7;
+      z-index: 10;
+    }
+
+    /* Trái tim bay nền */
+    .hearts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .heart {
+      position: absolute;
+      font-size: 1.8rem;
+      animation: floatUp linear infinite;
+      opacity: 0.9;
+      text-shadow: 0 0 10px #ff69b4;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(110vh) scale(0.3) rotate(0deg);
+        opacity: 0;
+      }
+      10% { opacity: 0.9; }
+      90% { opacity: 0.9; }
+      100% {
+        transform: translateY(-20vh) scale(0.7) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes appear {
+      0% {
+        opacity: 0;
+        transform: scale(0.1) translate(-40vw, 40vh);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0);
+      }
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.25); }
+      60% { transform: scale(1); }
+    }
+
+    ${Array.from({length: 28}, (_, i) => `
+      .heart:nth-child(${i+1}) {
+        left: ${Math.random()*100}%;
+        animation-delay: ${Math.random()*12}s;
+        animation-duration: ${8 + Math.random()*15}s;
+      }
+    `).join('')}
+  </style>
+</head>
+<body>
+
+  <canvas id="fireworks"></canvas>
+
+  <div class="hearts">
+    ${'🫶'.repeat(28).split('').map(() => '<div class="heart">🫶</div>').join('')}
+  </div>
+
+  <div class="container">
+    <div class="heart-text">
+      <span>M</span><span>ì</span><span>n</span><span>h</span><span> </span>
+      <span>T</span><span>h</span><span>í</span><span>c</span><span>h</span><span> </span>
+      <span>C</span><span>ậ</span><span>u</span><span>🫶</span>
+    </div>
+  </div>
+
+  <div class="author">Author Quang Liem</div>
+
+  <script>
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    let fireworks = [];
+    let particles = [];
+
+    class Firework {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height;
+        this.sx = this.x;
+        this.sy = canvas.height;
+        this.targetY = Math.random() * (canvas.height * 0.4) + 50;
+        this.speed = Math.random() * 3 + 4;
+        this.angle = Math.atan2(this.targetY - this.sy, this.x - this.sx);
+        this.vx = Math.cos(this.angle) * this.speed;
+        this.vy = Math.sin(this.angle) * this.speed;
+        this.color = `hsl(${Math.random()*60 + 330}, 100%, 60%)`; // hồng - tím
+        this.exploded = false;
+        this.trail = [];
+      }
+
+      update() {
+        if (!this.exploded) {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vy += 0.08; // gravity nhẹ
+
+          if (this.y <= this.targetY) {
+            this.explode();
+          }
+
+          this.trail.push({x: this.x, y: this.y});
+          if (this.trail.length > 12) this.trail.shift();
+        }
+      }
+
+      draw() {
+        if (!this.exploded) {
+          // vạch lửa bay lên
+          ctx.beginPath();
+          ctx.moveTo(this.sx, this.sy);
+          for (let p of this.trail) {
+            ctx.lineTo(p.x, p.y);
+          }
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 3;
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = this.color;
+          ctx.stroke();
+        }
+      }
+
+      explode() {
+        this.exploded = true;
+        const particleCount = Math.random() * 40 + 60;
+        const isHeartBurst = Math.random() > 0.6; // ~40% pháo nổ ra tim
+
+        for (let i = 0; i < particleCount; i++) {
+          const angle = (Math.PI * 2 / particleCount) * i + (Math.random() - 0.5) * 0.4;
+          const speed = Math.random() * 5 + 2;
+          particles.push(new Particle(
+            this.x, this.y,
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed,
+            this.color,
+            isHeartBurst && i % 8 === 0 // một số hạt là tim
+          ));
+        }
+      }
+    }
+
+    class Particle {
+      constructor(x, y, vx, vy, color, isHeart = false) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+        this.alpha = 1;
+        this.friction = 0.98;
+        this.gravity = 0.07;
+        this.isHeart = isHeart;
+      }
+
+      update() {
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= 0.008;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+
+        if (this.isHeart) {
+          ctx.font = '20px Arial';
+          ctx.fillText('🫶', this.x - 10, this.y + 10);
+        } else {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function animate() {
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (Math.random() < 0.04) { // tạo pháo hoa mới
+        fireworks.push(new Firework());
+      }
+
+      fireworks = fireworks.filter(fw => {
+        fw.update();
+        fw.draw();
+        return !fw.exploded || particles.some(p => p.alpha > 0);
+      });
+
+      particles.forEach((p, i) => {
+        p.update();
+        p.draw();
+        if (p.alpha <= 0) particles.splice(i, 1);
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
